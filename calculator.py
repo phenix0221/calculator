@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
+# Author: phenix0221
 # -*- coding: utf-8 -*-
 
 
+# 使用sys模块来获取命令行参数
 import sys
-# import csv
+# 使用csv模块来保存程序输出结果
+import csv
+# 使用os模块来判断参数中的文件是否存在
 import os
 
 
@@ -22,9 +26,11 @@ class Args(object):
     # 私有属性__file_dict，用于保存从命令行获取的"选项: 文件路径"键值对
     __file_dict = {}
     # 私有属性__default_opt，用于定义默认的命令行选项
+    # 第一个元祖用于判断命令行选项是否都存在，第二个元祖用于判断选项对应的文件是否存在
+    # 输出文件由用户指定，默认是不存在的，不用判断是否存在
     __default_opt = [('-c', '-i', '-o'), ('-c', '-i')]
 
-    # 初始化方法，从命令行获取参数列表__args
+    # 初始化方法，从命令行获取参数列表__cmd_args
     def __init__(self):
         self.__cmd_args = sys.argv[1:]
 
@@ -64,6 +70,7 @@ class Args(object):
                 else:
                     print('File "{}" not exist!'.format(self.__cmd_args[opt_index + 1]))
                     sys.exit(102)
+            # 单独添加输出文件的路径至__file_dict
             self.__file_dict['-o'] = self.__cmd_args[self.__cmd_args.index('-o') + 1]
         # 如果命令行参数正确，且对应文件存在，则返回文件路径字典__file_dict
         return self.__file_dict
@@ -171,6 +178,8 @@ class WagesCalculator(object):
     __config_dict = {}
     # 用户信息字典
     __user_data_dict = {}
+    # 费种，费率信息字典
+    __fee_config_dict = ()
     # 用户ID
     __user_id = []
     # 税前工资
@@ -194,13 +203,15 @@ class WagesCalculator(object):
     def __init__(self):
         get_config = Config()
         self.__config_dict = get_config.get_config
+        self.__fee_config_dict = self.__config_dict.copy()
+        del self.__fee_config_dict['JiShuL']
+        del self.__fee_config_dict['JiShuH']
         get_user_data = UserData()
         self.__user_data_dict = get_user_data.get_user_data
 
     # 获取用户ID列表__user_id的方法
     def __get_user_id(self):
-        for uid in self.__user_data_dict:
-            self.__user_id.append(uid)
+        self.__user_id = list(self.__user_data_dict.keys())
         return self.__user_id
 
     # 访问用户ID列表__user_id的方法
@@ -210,8 +221,7 @@ class WagesCalculator(object):
 
     # 获取税前工资列表__wages_before_tax的方法
     def __get_wages_before_tax(self):
-        for uid, income in self.__user_data_dict.items():
-            self.__wages_before_tax.append(income)
+        self.__wages_before_tax = list(self.__user_data_dict.values())
         return self.__wages_before_tax
 
     # 访问税前工资列表__wages_before_tax的方法
@@ -221,10 +231,7 @@ class WagesCalculator(object):
 
     # 获取费种列表__fee_type的方法
     def __get_fee_type(self):
-        for fee in self.__config_dict:
-            self.__fee_type.append(fee)
-        self.__fee_type.remove('JiShuL')
-        self.__fee_type.remove('JiShuH')
+        self.__fee_type = list(self.__fee_config_dict.keys())
         return self.__fee_type
 
     # 访问费种列表__fee_type的方法
@@ -234,10 +241,7 @@ class WagesCalculator(object):
 
     # 获取费率列表__fee_rate的方法
     def __get_fee_rate(self):
-        for fee, rate in self.__config_dict.items():
-            self.__fee_rate.append(rate)
-        self.__fee_rate.remove(self.__config_dict['JiShuL'])
-        self.__fee_rate.remove(self.__config_dict['JiShuH'])
+        self.__fee_rate = list(self.__fee_config_dict.values())
         return self.__fee_rate
 
     # 访问费率列表__fee_rate的方法
@@ -325,19 +329,10 @@ class WagesCalculator(object):
 if __name__ == '__main__':
 
     wages = WagesCalculator()
-    # a = wages.get_wages_before_tax
-    # b = wages.get_fee_sum
-    # c = wages.get_personal_tax
-    # d = wages.get_wages_after_tax
-    e = wages.get_wages_detail
-    # wages_detail = wages.get_wages_detail
-    # print(a)
-    # print(b)
-    # print(c)
-    # print(d[1])
-    print(e)
+    wages_detail = wages.get_wages_detail
 
-    # file = Args()
-    # output_file_path = file.get_file_path['-o']
-    # with open(output_file_path, 'w') as output_file:
-    #     output_file.write(wages_detail)
+    file = Args()
+    output_file = file.get_file_path['-o']
+    with open(output_file, 'w') as output_file:
+        writer = csv.writer(output_file)
+        writer.writerows(wages_detail)
